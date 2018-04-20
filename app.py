@@ -51,7 +51,7 @@ def handle_message(event):
     else:
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text=event.message.text+'เจ้าคะ'))
+            TextSendMessage(text=event.message.text+'คร๊าบ...'))
 
 
 if __name__ == "__main__":
