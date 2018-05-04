@@ -14,7 +14,7 @@ from linebot.exceptions import (
 )
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
-    ImageMessage, VideoMessage, AudioMessage
+    ImageMessage, VideoMessage, AudioMessage, StickerMessage
 )
 
 import oil_price
@@ -23,9 +23,21 @@ app = Flask(__name__)
 
 latest_image_path = ""
 
+channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
+channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
+if channel_secret is None:
+    print('Specify LINE_CHANNEL_SECRET as environment variable.')
+    sys.exit(1)
+if channel_access_token is None:
+    print('Specify LINE_CHANNEL_ACCESS_TOKEN as environment variable.')
+    sys.exit(1)
 
-line_bot_api = LineBotApi('OLOz4VzGV5UWnisCWZ7XIG2hjWMXgiWovJlzsNYDjYPS9H3QnBfcviaDiRscYOM7duwxsOLEMDPVTRWMICu19XBWJXDhNK4BzmTSU2S0n7WBf/+cTq68LFRd7Lp3Y/IV+YJilL9GrFJymp+T8jY4jAdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('3406e2ef6f2fc4aba0a065df4a6ddcb7')
+line_bot_api = LineBotApi(channel_access_token)
+handler = WebhookHandler(channel_secret)
+
+#line_bot_api = LineBotApi('lO4q5oofCdcZoWJBluM/fxJq5LNYtFF2tYHGberZX7ySR0WAwV0dfWy0/B5ZW4DWUY/H2HI935A4Cjlsbx0Jiv2koP3mRARe8zqXjLvpYD6qAvDwNSZtKVSlHZuY64PGqzG2vtnse3++rqTu9byYOgdB04t89/1O/w1cDnyilFU=')
+
+#handler = WebhookHandler('8f3d4e7c4f31aebb86d3d2a4ff33a0c3')
 
 
 static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
@@ -60,16 +72,26 @@ def callback():
 
     # handle webhook body
     try:
+        print("Body:"+ body)
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
 
     return 'OK'
 
+@handler.add(MessageEvent, message=StickerMessage)
+def handle_sticker_message(event):
+   # Handle webhook verification
+   if event.reply_token == "ffffffffffffffffffffffffffffffff" :
+       return "OK"
+
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     global latest_image_path
+    
+    if event.reply_token == "00000000000000000000000000000000":
+        return "OK"
 
     if event.message.text == 'ราคาน้ำมัน':
         l = oil_price.get_prices()
