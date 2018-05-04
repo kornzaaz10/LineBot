@@ -10,11 +10,12 @@ from linebot import (
     LineBotApi, WebhookHandler
 )
 from linebot.exceptions import (
-    InvalidSignatureError
+    InvalidSignatureError,LineBotApiError
 )
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage,
-    ImageMessage, VideoMessage, AudioMessage, StickerMessage
+    ImageMessage, VideoMessage, AudioMessage, StickerMessage, 
+    JoinEvent,SourceGroup,StickerSendMessage
 )
 
 import oil_price
@@ -82,9 +83,51 @@ def callback():
 @handler.add(MessageEvent, message=StickerMessage)
 def handle_sticker_message(event):
    # Handle webhook verification
-   if event.reply_token == "ffffffffffffffffffffffffffffffff" :
-       return "OK"
+   print("Sticker Message")
+   if event.reply_token == 'ffffffffffffffffffffffffffffffff':
+       return
 
+   line_bot_api.reply_message(
+       event.reply_token,
+       StickerSendMessage(
+           package_id=event.message.package_id,
+           sticker_id=event.message.sticker_id
+       )
+   )
+
+@handler.add(JoinEvent)
+def handle_join(event):
+   # group_id = event.source.group_id
+   # line_bot_api.get_group_member_profile(group_id,member_id)
+   # member_ids_res = line_bot_api.get_group_member_ids(group_id)
+   # print(member_ids_res.member_ids)
+   # print(member_ids_res.next)
+    try:
+        profile = line_bot_api.get_group_member_profile(
+            event.source.group_id,
+            'U991007deaa6c52bd776443e7d89f2032'
+        )
+        line_bot_api.reply_message(
+            event.reply_token,
+            [
+                TextSendMessage(text='สวัสดีค่า'),
+                StickerSendMessage(
+                    package_id=1,
+                    sticker_id=2
+                )
+            ]
+        )        
+    except LineBotApiError as e:
+        print(e.status_code)
+        print(e.error.message)
+        print(e.error.details)
+        line_bot_api.reply_message(
+            event.reply_token,
+            [
+                TextSendMessage(text='หัวหน้าไม่อยู่ในห้องนี้\nไปละค่ะ\nบัย'),
+            ]
+        )
+        line_bot_api.leave_group(event.source.group_id)
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
@@ -92,6 +135,20 @@ def handle_message(event):
     
     if event.reply_token == "00000000000000000000000000000000":
         return "OK"
+
+    if event.message.text == 'ออกไปได้แล้ว':
+       if isinstance(event.source,SourceGroup):
+           if event.source.user_id == 'U991007deaa6c52bd776443e7d89f2032':
+               line_bot_api.reply_message(
+                   event.reply_token,
+                   TextMessage(text='บะบายค่า')
+               )
+               line_bot_api.leave_group(event.source.group_id)
+           else:
+               line_bot_api.reply_message(
+                   event.reply_token,
+                   TextMessage(text='ไม่!')
+               )   
 
     if event.message.text == 'ราคาน้ำมัน':
         l = oil_price.get_prices()
